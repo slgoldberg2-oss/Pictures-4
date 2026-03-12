@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>StreetShot · Cook County Property Photos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ── RESET & ROOT ─────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:    #0f0e0c;
+  --paper:  #f5f0e8;
+  --card:   #faf7f2;
+  --border: #ddd5c0;
+  --line:   #c8bda0;
+  --rust:   #9c3d1e;
+  --gold:   #b8820a;
+  --forest: #2d5a3d;
+  --smoke:  #7a7060;
+  --pale:   #e8e0d0;
+  --r: 3px;
+  --shadow: 0 1px 4px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.06);
+}
+html,body{height:100%;background:var(--paper);color:var(--ink);font-family:'IBM Plex Mono',monospace}
+
+/* ── HEADER ───────────────────────────────────────────── */
+header{
+  display:flex;align-items:center;gap:20px;
+  padding:18px 48px;
+  background:var(--ink);
+  border-bottom:3px solid var(--rust);
+}
+.logo{
+  font-family:'Playfair Display',serif;
+  font-size:22px;font-weight:400;
+  color:var(--paper);letter-spacing:.02em;
+}
+.logo span{color:var(--gold);font-style:italic}
+.logo-tag{
+  font-size:8px;letter-spacing:.3em;text-transform:uppercase;
+  color:#7a7060;border-left:1px solid #333;padding-left:18px;
+  line-height:1.6;
+}
+
+/* ── STEP NAV ─────────────────────────────────────────── */
+.stepnav{
+  display:flex;align-items:stretch;
+  background:var(--ink);border-bottom:1px solid #222;
+  padding:0 48px;
+}
+.stepnav-item{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 0;margin-right:32px;
+  font-size:9px;letter-spacing:.22em;text-transform:uppercase;
+  color:#4a4438;border-bottom:2px solid transparent;
+  transition:color .2s,border-color .2s;
+  cursor:default;
+}
+.stepnav-item.active{color:var(--gold);border-bottom-color:var(--gold)}
+.stepnav-item.done{color:#4a6050;border-bottom-color:#4a6050}
+.stepnav-num{
+  width:18px;height:18px;border-radius:50%;
+  border:1px solid currentColor;
+  display:flex;align-items:center;justify-content:center;
+  font-size:8px;flex-shrink:0;
+}
+
+/* ── MAIN LAYOUT ──────────────────────────────────────── */
+main{max-width:960px;margin:0 auto;padding:40px 24px 100px}
+
+/* ── VIEWS ────────────────────────────────────────────── */
+.view{display:none}
+.view.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.view.active{animation:fadeUp .25s ease}
+
+/* ── SECTION HEADING ──────────────────────────────────── */
+.sh{margin-bottom:28px}
+.sh-eye{font-size:8px;letter-spacing:.35em;text-transform:uppercase;color:var(--smoke);margin-bottom:5px}
+.sh-title{font-family:'Playfair Display',serif;font-size:30px;font-weight:400;line-height:1.15;color:var(--ink)}
+.sh-title em{font-style:italic;color:var(--rust)}
+
+/* ── PIN TABLE ────────────────────────────────────────── */
+.pin-table{width:100%;border-collapse:collapse;margin-bottom:28px}
+.pin-table th{
+  font-size:8px;letter-spacing:.25em;text-transform:uppercase;
+  color:var(--smoke);padding:0 10px 10px;text-align:left;
+  border-bottom:1px solid var(--border);
+}
+.pin-table td{padding:6px 10px;border-bottom:1px solid var(--pale)}
+.pin-table tr:last-child td{border-bottom:none}
+.prop-tag{
+  font-size:11px;letter-spacing:.05em;color:var(--ink);
+  white-space:nowrap;
+}
+.prop-sub{font-size:9px;color:var(--smoke);margin-top:2px}
+.pin-inp{
+  width:100%;padding:8px 12px;
+  background:#fff;border:1px solid var(--border);border-radius:var(--r);
+  font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;
+  color:var(--ink);outline:none;
+  transition:border-color .15s,box-shadow .15s;
+}
+.pin-inp::placeholder{color:#c8bda0;letter-spacing:.05em}
+.pin-inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,130,10,.1)}
+.pin-inp.ok{border-color:var(--forest);background:#f0f7f2}
+.pin-inp.err{border-color:var(--rust);background:#fdf2f0}
+.pin-st{
+  font-size:9px;letter-spacing:.04em;color:var(--smoke);
+  min-width:130px;line-height:1.4;
+}
+.pin-st.ok{color:var(--forest)}
+.pin-st.err{color:var(--rust)}
+.pin-st.spin{color:var(--gold)}
+
+/* ── BUTTONS ──────────────────────────────────────────── */
+.btn{
+  padding:10px 22px;border:none;border-radius:var(--r);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  font-weight:500;letter-spacing:.18em;text-transform:uppercase;
+  cursor:pointer;transition:opacity .15s,background .15s,transform .1s;
+}
+.btn:active:not(:disabled){transform:scale(.98)}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+.btn:hover:not(:disabled){opacity:.85}
+.btn-rust{background:var(--rust);color:#fff}
+.btn-gold{background:var(--gold);color:#fff}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--smoke)}
+.btn-forest{background:var(--forest);color:#fff}
+.row-btns{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
+/* ── STATUS MESSAGES ──────────────────────────────────── */
+.msg{
+  margin-top:14px;padding:10px 14px;border-radius:var(--r);
+  font-size:10px;letter-spacing:.06em;border-left:3px solid;
+  display:none;
+}
+.msg.show{display:block}
+.msg.warn{background:#fef8ed;border-color:var(--gold);color:#7a5a08}
+.msg.err{background:#fdf2f0;border-color:var(--rust);color:#7a2010}
+.msg.ok{background:#f0f7f2;border-color:var(--forest);color:#1d4a2a}
+
+/* ── PROPERTY CARDS (Step 2) ──────────────────────────── */
+.prop-cards{display:flex;flex-direction:column;gap:12px;margin-bottom:28px}
+.pcard{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:var(--r);overflow:hidden;
+  box-shadow:var(--shadow);
+  transition:border-color .2s;
+}
+.pcard-head{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 18px;background:var(--ink);
+}
+.pcard-label{
+  font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);
+}
+.pcard-pin{font-size:10px;letter-spacing:.08em;color:#666;margin-top:2px}
+.pcard-body{padding:14px 18px;display:flex;flex-direction:column;gap:10px}
+.pcard-addr{font-size:10px;letter-spacing:.05em;color:var(--smoke);line-height:1.5}
+
+/* ISV link pill */
+.isv-pill{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;background:var(--paper);
+  border:1px solid var(--border);border-radius:var(--r);
+  text-decoration:none;transition:border-color .15s,background .15s;
+}
+.isv-pill:hover{border-color:var(--gold);background:#fef8ed}
+.isv-icon{font-size:13px}
+.isv-text{
+  font-size:9px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gold);font-weight:500;
+}
+.isv-url-preview{
+  font-size:9px;color:var(--smoke);letter-spacing:.03em;
+  word-break:break-all;line-height:1.5;
+  padding:6px 10px;background:var(--pale);border-radius:var(--r);
+}
+
+/* Photo action area */
+.photo-actions{display:flex;gap:8px}
+.photo-actions .btn{flex:0 0 auto;padding:9px 18px;font-size:9px}
+
+.preview-wrap{
+  display:none;flex-direction:column;gap:6px;
+  border:1px solid var(--border);border-radius:var(--r);overflow:hidden;
+}
+.preview-wrap.show{display:flex}
+.preview-img{width:100%;display:block;max-height:220px;object-fit:cover;cursor:pointer}
+.preview-done{
+  padding:6px 12px;background:var(--forest);color:#fff;
+  font-size:9px;letter-spacing:.15em;text-transform:uppercase;text-align:center;
+}
+.redo-link{
+  font-size:9px;letter-spacing:.08em;color:var(--smoke);
+  text-decoration:underline;cursor:pointer;text-align:right;
+  padding-right:2px;
+}
+.redo-link:hover{color:var(--rust)}
+
+/* ── CROP MODAL ───────────────────────────────────────── */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(10,9,8,.88);z-index:200;
+  align-items:center;justify-content:center;
+  backdrop-filter:blur(2px);
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:6px;display:flex;flex-direction:column;
+  width:min(860px,96vw);max-height:92vh;
+  box-shadow:0 24px 80px rgba(0,0,0,.4);
+  overflow:hidden;
+}
+.modal-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:13px 20px;background:var(--ink);
+}
+.modal-title{
+  font-family:'Playfair Display',serif;
+  font-size:17px;color:var(--paper);font-style:italic;
+}
+.modal-close{
+  background:none;border:none;color:#888;font-size:18px;
+  cursor:pointer;padding:4px 8px;line-height:1;
+  transition:color .15s;
+}
+.modal-close:hover{color:var(--paper)}
+
+/* Two-button choice inside modal */
+.modal-choice{
+  display:flex;gap:0;border-bottom:1px solid var(--border);
+}
+.choice-btn{
+  flex:1;padding:14px;
+  background:var(--pale);border:none;border-right:1px solid var(--border);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:.18em;text-transform:uppercase;
+  cursor:pointer;transition:background .15s,color .15s;
+  color:var(--smoke);
+}
+.choice-btn:last-child{border-right:none}
+.choice-btn:hover,.choice-btn.active{background:var(--rust);color:#fff}
+.choice-btn.upload-active{background:var(--forest);color:#fff}
+
+.modal-body{flex:1;overflow:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.crop-hint{font-size:9px;letter-spacing:.08em;color:var(--smoke);line-height:1.6}
+
+/* Crop canvas */
+#cropWrap{
+  position:relative;display:inline-block;
+  user-select:none;cursor:crosshair;align-self:flex-start;
+}
+#cropImg{display:block;max-width:100%;max-height:52vh;pointer-events:none}
+#cropSel{
+  position:absolute;border:2px solid var(--gold);
+  background:rgba(184,130,10,.12);pointer-events:none;display:none;
+}
+
+/* Upload panel */
+#uploadPanel{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:16px;padding:32px;
+  border:2px dashed var(--border);border-radius:var(--r);
+  text-align:center;min-height:200px;
+}
+#uploadPanel.show{display:flex}
+.upload-icon{font-size:40px;opacity:.4}
+.upload-hint{font-size:10px;letter-spacing:.08em;color:var(--smoke)}
+
+.modal-ft{
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:13px 20px;border-top:1px solid var(--border);
+  background:var(--pale);
+}
+
+/* ── STEP 3 / SUMMARY ─────────────────────────────────── */
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:28px}
+.thumb{border:1px solid var(--border);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow)}
+.thumb img{width:100%;display:block;max-height:130px;object-fit:cover}
+.thumb-lbl{padding:7px 10px;background:var(--ink);color:var(--gold);font-size:9px;letter-spacing:.1em;text-transform:uppercase}
+
+/* ── PROGRESS BAR ─────────────────────────────────────── */
+.prog{display:none;margin-top:14px}
+.prog.show{display:block}
+.prog-track{height:2px;background:var(--pale);border-radius:2px;overflow:hidden}
+.prog-fill{height:2px;background:var(--rust);width:0%;transition:width .4s}
+.prog-lbl{font-size:9px;letter-spacing:.1em;color:var(--smoke);margin-top:6px}
+
+/* ── FOOTER ───────────────────────────────────────────── */
+footer{
+  border-top:1px solid var(--border);padding:14px 48px;
+  font-size:8px;letter-spacing:.2em;text-transform:uppercase;color:var(--smoke);
+  display:flex;justify-content:space-between;
+}
+
+/* ── HIDDEN FILE INPUT ────────────────────────────────── */
+#fileInp{display:none}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Street<span>Shot</span></div>
+  <div class="logo-tag">Cook County Property<br>Street View PDF Generator</div>
+</header>
+
+<div class="stepnav">
+  <div class="stepnav-item active" id="si1"><div class="stepnav-num">1</div>Enter PINs</div>
+  <div class="stepnav-item" id="si2"><div class="stepnav-num">2</div>Photos</div>
+  <div class="stepnav-item" id="si3"><div class="stepnav-num">3</div>Download PDF</div>
+</div>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════════
+     VIEW 1 — PIN ENTRY
+════════════════════════════════════════════════════════ -->
+<div class="view active" id="v1">
+  <div class="sh">
+    <div class="sh-eye">Step 1 of 3</div>
+    <h1 class="sh-title">Enter Property <em>PINs</em></h1>
+  </div>
+
+  <table class="pin-table">
+    <thead>
+      <tr>
+        <th style="width:180px">Property</th>
+        <th>14-Digit PIN</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody id="pinRows"></tbody>
+  </table>
+
+  <div class="row-btns">
+    <button class="btn btn-rust" id="lookupBtn" onclick="lookupAll()">Look Up All Properties</button>
+    <button class="btn btn-ghost" onclick="clearAll()">Clear</button>
+  </div>
+  <div class="msg" id="msg1"></div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     VIEW 2 — PHOTO REVIEW
+════════════════════════════════════════════════════════ -->
+<div class="view" id="v2">
+  <div class="sh">
+    <div class="sh-eye">Step 2 of 3</div>
+    <h1 class="sh-title">Finalize <em>Property Photos</em></h1>
+  </div>
+  <p style="font-size:10px;color:var(--smoke);letter-spacing:.05em;margin-bottom:20px;line-height:1.7">
+    Click each property link to open InstantStreetView. Then choose <strong>Crop</strong> (take a screenshot and crop it) 
+    or <strong>User Upload</strong> (upload your own photo). Once finalized, click <strong>Build PDF</strong>.
+  </p>
+
+  <div class="prop-cards" id="propCards"></div>
+
+  <div class="row-btns">
+    <button class="btn btn-rust" id="buildBtn" onclick="buildPDF()" disabled>Build PDF</button>
+    <button class="btn btn-ghost" onclick="goStep(1)">← Back</button>
+  </div>
+  <div class="msg" id="msg2"></div>
+  <div class="prog" id="prog">
+    <div class="prog-track"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-lbl" id="progLbl">Building…</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     VIEW 3 — DOWNLOAD
+════════════════════════════════════════════════════════ -->
+<div class="view" id="v3">
+  <div class="sh">
+    <div class="sh-eye">Step 3 of 3</div>
+    <h1 class="sh-title">Your PDF is <em>Ready</em></h1>
+  </div>
+  <div class="thumbs" id="thumbGrid"></div>
+  <div class="row-btns">
+    <button class="btn btn-gold" onclick="downloadPDF()">↓ Download PDF</button>
+    <button class="btn btn-ghost" onclick="goStep(2)">← Back</button>
+    <button class="btn btn-ghost" onclick="startOver()">Start Over</button>
+  </div>
+  <div class="msg" id="msg3"></div>
+</div>
+
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     MODAL — CROP / UPLOAD
+════════════════════════════════════════════════════════ -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title" id="modalTitle">Property Photo</div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <!-- Mode toggle -->
+    <div class="modal-choice">
+      <button class="choice-btn active" id="cropTab" onclick="switchMode('crop')">✂ Crop Screenshot</button>
+      <button class="choice-btn" id="uploadTab" onclick="switchMode('upload')">↑ User Upload</button>
+    </div>
+
+    <div class="modal-body">
+
+      <!-- CROP PANEL -->
+      <div id="cropPanel">
+        <div class="crop-hint">
+          Paste or load the InstantStreetView screenshot below, then drag to select the area to keep.
+          Leave unselected to use the full image. Click <strong>Complete Crop</strong> when done.
+        </div>
+
+        <!-- Sub-actions: paste from clipboard or upload file for cropping -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost" style="font-size:9px;padding:7px 14px" onclick="pasteFromClipboard()">
+            📋 Paste Screenshot
+          </button>
+          <button class="btn btn-ghost" style="font-size:9px;padding:7px 14px" onclick="loadFileForCrop()">
+            📂 Load Image File
+          </button>
+          <span style="font-size:9px;color:var(--smoke);letter-spacing:.05em">
+            — or take a screenshot of the ISV link above, then paste here
+          </span>
+        </div>
+
+        <div id="cropWrap">
+          <img id="cropImg" src="" alt=""/>
+          <div id="cropSel"></div>
+        </div>
+        <div id="cropEmpty" style="display:flex;align-items:center;justify-content:center;min-height:160px;border:2px dashed var(--border);border-radius:var(--r);color:var(--smoke);font-size:10px;letter-spacing:.06em">
+          No image loaded yet — paste or load a file above
+        </div>
+      </div>
+
+      <!-- UPLOAD PANEL -->
+      <div id="uploadPanel">
+        <div class="upload-icon">🖼</div>
+        <div class="upload-hint">Click the button below to select the photo you want to use for this property.</div>
+        <button class="btn btn-forest" onclick="triggerUpload('final')">Choose Photo File</button>
+      </div>
+
+    </div><!-- /modal-body -->
+
+    <div class="modal-ft">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-rust" id="completeCropBtn" onclick="completeCrop()">Complete Crop</button>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="fileInp" accept="image/*"/>
+<input type="file" id="cropFileInp" accept="image/*"/>
+
+<footer>
+  <span>StreetShot · Cook County Assessor Data</span>
+  <span>instantstreetview.com</span>
+</footer>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+const PROPS = [
+  {id:'subject', label:'Subject Property', sub:'Primary property'},
+  {id:'comp1',   label:'Comparable 1',     sub:'Sale comparable'},
+  {id:'comp2',   label:'Comparable 2',     sub:'Sale comparable'},
+  {id:'comp3',   label:'Comparable 3',     sub:'Sale comparable'},
+  {id:'comp4',   label:'Comparable 4',     sub:'Sale comparable'},
+];
+
+let propData    = {};  // id → {pin14, lat, lon, address, isv_url}
+let finalImgs   = {};  // id → base64 png string
+let pdfBlob     = null;
+let activeId    = null;
+let cropMode    = 'crop';  // 'crop' | 'upload'
+let cropB64     = null;    // base64 of image loaded in crop panel
+let cropStart   = null;
+let cropEnd     = null;
+let debounces   = {};
+
+// ══════════════════════════════════════════════════════════════
+// BUILD PIN TABLE
+// ══════════════════════════════════════════════════════════════
+function buildPinTable() {
+  const tbody = document.getElementById('pinRows');
+  tbody.innerHTML = '';
+  PROPS.forEach(p => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>
+        <div class="prop-tag">${p.label}</div>
+        <div class="prop-sub">${p.sub}</div>
+      </td>
+      <td>
+        <input class="pin-inp" id="inp_${p.id}"
+          type="text" maxlength="17" autocomplete="off"
+          placeholder="XX-XX-XXX-XXX-XXXX"
+          oninput="onPinType('${p.id}')"
+          onblur="checkPin('${p.id}')"/>
+      </td>
+      <td><div class="pin-st" id="st_${p.id}">—</div></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+buildPinTable();
+
+// ══════════════════════════════════════════════════════════════
+// PIN INPUT
+// ══════════════════════════════════════════════════════════════
+function rawPin(v){ return v.replace(/[-\s]/g,'') }
+
+function fmtPin(raw){
+  // XX-XX-XXX-XXX-XXXX
+  raw = raw.slice(0,14);
+  let o='';
+  for(let i=0;i<raw.length;i++){
+    if(i===2||i===4||i===7||i===10) o+='-';
+    o+=raw[i];
+  }
+  return o;
+}
+
+function onPinType(id){
+  const inp = document.getElementById(`inp_${id}`);
+  const r   = rawPin(inp.value);
+  inp.value = fmtPin(r);
+  inp.classList.remove('ok','err');
+  setSt(id,'—','');
+  delete propData[id];
+  clearTimeout(debounces[id]);
+  if(r.length===14){
+    debounces[id]=setTimeout(()=>checkPin(id),600);
+  }
+}
+
+async function checkPin(id){
+  const inp = document.getElementById(`inp_${id}`);
+  const r   = rawPin(inp.value);
+  if(!r){ setSt(id,'—',''); inp.classList.remove('ok','err'); return; }
+  if(r.length!==14){
+    setSt(id,`${r.length}/14 digits`,'err');
+    inp.classList.add('err'); return;
+  }
+  setSt(id,'Searching…','spin');
+  try{
+    const res  = await fetch('/lookup-pin',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin:r})});
+    if(!res.ok){ const e=await res.json(); throw new Error(e.error||'Not found'); }
+    const data = await res.json();
+    propData[id] = data;
+    inp.classList.add('ok');
+    setSt(id, truncate(data.address,28), 'ok');
+  }catch(e){
+    delete propData[id];
+    inp.classList.add('err');
+    setSt(id, truncate(e.message,28), 'err');
+  }
+}
+
+function setSt(id,msg,cls){
+  const el=document.getElementById(`st_${id}`);
+  el.textContent=msg;
+  el.className='pin-st'+(cls?' '+cls:'');
+}
+
+function truncate(s,n){ return s.length>n?s.slice(0,n)+'…':s; }
+
+function clearAll(){
+  PROPS.forEach(p=>{
+    const inp=document.getElementById(`inp_${p.id}`);
+    inp.value=''; inp.classList.remove('ok','err');
+    setSt(p.id,'—','');
+  });
+  propData={}; finalImgs={}; pdfBlob=null;
+  showMsg('msg1','','');
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 1 → STEP 2
+// ══════════════════════════════════════════════════════════════
+async function lookupAll(){
+  showMsg('msg1','','');
+  // Validate any unvalidated PINs
+  const btn=document.getElementById('lookupBtn');
+  btn.disabled=true;
+  for(const p of PROPS){
+    const r=rawPin(document.getElementById(`inp_${p.id}`).value);
+    if(r.length===14 && !propData[p.id]) await checkPin(p.id);
+  }
+  btn.disabled=false;
+
+  const ready=PROPS.filter(p=>propData[p.id]);
+  if(!ready.length){
+    showMsg('msg1','Please enter and validate at least one PIN.','err');
+    return;
+  }
+  buildPropCards();
+  goStep(2);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 2 — PROPERTY CARDS
+// ══════════════════════════════════════════════════════════════
+function buildPropCards(){
+  finalImgs={};
+  const container=document.getElementById('propCards');
+  container.innerHTML='';
+  PROPS.filter(p=>propData[p.id]).forEach(p=>{
+    const d=propData[p.id];
+    const card=document.createElement('div');
+    card.className='pcard'; card.id=`card_${p.id}`;
+    card.innerHTML=`
+      <div class="pcard-head">
+        <div>
+          <div class="pcard-label">${p.label}</div>
+          <div class="pcard-pin">${d.pin14}</div>
+        </div>
+        <div id="badge_${p.id}" style="display:none;padding:5px 10px;background:#2d5a3d;color:#fff;border-radius:2px;font-size:8px;letter-spacing:.15em;text-transform:uppercase">✓ Finalized</div>
+      </div>
+      <div class="pcard-body">
+        <div class="pcard-addr">${d.address}</div>
+
+        <a class="isv-pill" href="${d.isv_url}" target="_blank" rel="noopener">
+          <span class="isv-icon">🗺</span>
+          <span class="isv-text">Open in InstantStreetView ↗</span>
+        </a>
+        <div class="isv-url-preview">${d.isv_url}</div>
+
+        <div class="photo-actions">
+          <button class="btn btn-ghost" onclick="openModal('${p.id}','crop')">✂ Crop Screenshot</button>
+          <button class="btn btn-ghost" onclick="openModal('${p.id}','upload')">↑ User Upload</button>
+        </div>
+
+        <div class="preview-wrap" id="prev_${p.id}">
+          <img class="preview-img" id="prevImg_${p.id}" src="" alt=""
+            title="Click to re-open crop/upload" onclick="openModal('${p.id}',null)"/>
+          <div class="preview-done">✓ Photo ready for PDF</div>
+          <div class="redo-link" onclick="redoPhoto('${p.id}')">Redo this photo</div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+  checkReadyState();
+}
+
+function redoPhoto(id){
+  delete finalImgs[id];
+  document.getElementById(`prev_${id}`).classList.remove('show');
+  document.getElementById(`badge_${id}`).style.display='none';
+  checkReadyState();
+}
+
+function checkReadyState(){
+  const total=PROPS.filter(p=>propData[p.id]).length;
+  const done=Object.keys(finalImgs).length;
+  document.getElementById('buildBtn').disabled=done===0;
+  if(done>0&&done<total)
+    showMsg('msg2',`${done} of ${total} photos finalized. You may build the PDF now or finalize more.`,'warn');
+  else if(done===total&&total>0)
+    showMsg('msg2',`All ${total} photos finalized — ready to build PDF.`,'ok');
+  else
+    showMsg('msg2','','');
+}
+
+// ══════════════════════════════════════════════════════════════
+// MODAL — OPEN / CLOSE / SWITCH
+// ══════════════════════════════════════════════════════════════
+function openModal(id, mode){
+  activeId = id;
+  const p  = PROPS.find(x=>x.id===id);
+  document.getElementById('modalTitle').textContent = p.label + ' — Photo';
+  cropB64   = null; cropStart = null; cropEnd = null;
+  resetCropCanvas();
+  document.getElementById('overlay').classList.add('open');
+  switchMode(mode || 'crop');
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  activeId=null; cropB64=null; cropStart=null; cropEnd=null;
+}
+
+function switchMode(m){
+  cropMode=m;
+  document.getElementById('cropTab').className  ='choice-btn'+(m==='crop'?' active':'');
+  document.getElementById('uploadTab').className='choice-btn'+(m==='upload'?' upload-active':'');
+  document.getElementById('cropPanel').style.display   = m==='crop'?'flex':'none';
+  document.getElementById('cropPanel').style.flexDirection='column';
+  document.getElementById('cropPanel').style.gap='10px';
+  document.getElementById('uploadPanel').classList.toggle('show', m==='upload');
+  document.getElementById('completeCropBtn').style.display = m==='crop'?'':'none';
+}
+
+// ══════════════════════════════════════════════════════════════
+// CROP LOGIC
+// ══════════════════════════════════════════════════════════════
+function resetCropCanvas(){
+  document.getElementById('cropImg').src='';
+  document.getElementById('cropSel').style.display='none';
+  document.getElementById('cropWrap').style.display='none';
+  document.getElementById('cropEmpty').style.display='flex';
+}
+
+function showCropImage(b64){
+  cropB64=b64;
+  const img=document.getElementById('cropImg');
+  img.src='data:image/png;base64,'+b64;
+  img.onload=()=>{
+    document.getElementById('cropWrap').style.display='inline-block';
+    document.getElementById('cropEmpty').style.display='none';
+  };
+}
+
+async function pasteFromClipboard(){
+  try{
+    const items=await navigator.clipboard.read();
+    for(const item of items){
+      const type=item.types.find(t=>t.startsWith('image/'));
+      if(type){
+        const blob=await item.getType(type);
+        const b64=await blobToB64(blob);
+        showCropImage(b64.split(',')[1]);
+        return;
+      }
+    }
+    alert('No image found on clipboard. Take a screenshot of InstantStreetView first, then paste.');
+  }catch(e){
+    alert('Clipboard access denied. Please use "Load Image File" instead, or paste manually after clicking the crop area.');
+  }
+}
+
+function loadFileForCrop(){
+  const inp=document.getElementById('cropFileInp');
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>showCropImage(ev.target.result.split(',')[1]);
+    r.readAsDataURL(f);
+    inp.value='';
+  };
+  inp.click();
+}
+
+// Drag to select crop region
+const cropWrap=document.getElementById('cropWrap');
+const cropSel=document.getElementById('cropSel');
+
+cropWrap.addEventListener('mousedown',e=>{
+  if(!cropB64)return;
+  const r=cropWrap.getBoundingClientRect();
+  cropStart={x:e.clientX-r.left,y:e.clientY-r.top};
+  cropEnd=null; cropSel.style.display='none';
+  e.preventDefault();
+});
+cropWrap.addEventListener('mousemove',e=>{
+  if(!cropStart||!cropB64)return;
+  const r=cropWrap.getBoundingClientRect();
+  cropEnd={x:e.clientX-r.left,y:e.clientY-r.top};
+  const x=Math.min(cropStart.x,cropEnd.x);
+  const y=Math.min(cropStart.y,cropEnd.y);
+  const w=Math.abs(cropEnd.x-cropStart.x);
+  const h=Math.abs(cropEnd.y-cropStart.y);
+  Object.assign(cropSel.style,{display:'block',left:x+'px',top:y+'px',width:w+'px',height:h+'px'});
+});
+window.addEventListener('mouseup',()=>{ /* selection done */ });
+
+function completeCrop(){
+  if(!cropB64){ alert('Please load an image first.'); return; }
+
+  const img=document.getElementById('cropImg');
+  const dw=img.clientWidth, dh=img.clientHeight;
+  const nw=img.naturalWidth, nh=img.naturalHeight;
+  const sx=nw/dw, sy=nh/dh;
+
+  let x=0,y=0,w=nw,h=nh;
+
+  if(cropStart&&cropEnd){
+    const cx=Math.min(cropStart.x,cropEnd.x);
+    const cy=Math.min(cropStart.y,cropEnd.y);
+    const cw=Math.abs(cropEnd.x-cropStart.x);
+    const ch=Math.abs(cropEnd.y-cropStart.y);
+    if(cw>10&&ch>10){
+      x=Math.round(cx*sx); y=Math.round(cy*sy);
+      w=Math.round(cw*sx); h=Math.round(ch*sy);
+    }
+  }
+
+  const canvas=document.createElement('canvas');
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  const full=new Image();
+  full.onload=()=>{
+    ctx.drawImage(full,x,y,w,h,0,0,w,h);
+    const b64=canvas.toDataURL('image/png').split(',')[1];
+    finalizePhoto(activeId, b64);
+    closeModal();
+  };
+  full.src='data:image/png;base64,'+cropB64;
+}
+
+// ══════════════════════════════════════════════════════════════
+// UPLOAD LOGIC
+// ══════════════════════════════════════════════════════════════
+function triggerUpload(mode){
+  const inp=document.getElementById('fileInp');
+  inp.onchange=e=>{
+    const f=e.target.files[0]; if(!f) return;
+    const r=new FileReader();
+    r.onload=ev=>{
+      const b64=ev.target.result.split(',')[1];
+      finalizePhoto(activeId, b64);
+      closeModal();
+    };
+    r.readAsDataURL(f);
+    inp.value='';
+  };
+  inp.click();
+}
+
+// ══════════════════════════════════════════════════════════════
+// FINALIZE A PHOTO
+// ══════════════════════════════════════════════════════════════
+function finalizePhoto(id, b64){
+  finalImgs[id]=b64;
+  const wrap=document.getElementById(`prev_${id}`);
+  const img=document.getElementById(`prevImg_${id}`);
+  img.src='data:image/png;base64,'+b64;
+  wrap.classList.add('show');
+  document.getElementById(`badge_${id}`).style.display='block';
+  checkReadyState();
+}
+
+// ══════════════════════════════════════════════════════════════
+// BUILD PDF
+// ══════════════════════════════════════════════════════════════
+async function buildPDF(){
+  const pages=PROPS.filter(p=>finalImgs[p.id]).map(p=>({
+    label:`${p.label}  |  PIN ${propData[p.id].pin14}  |  ${propData[p.id].address}`,
+    png_b64: finalImgs[p.id]
+  }));
+  if(!pages.length)return;
+
+  const btn=document.getElementById('buildBtn');
+  btn.disabled=true;
+  showMsg('msg2','','');
+  showProg(true,'Building PDF…',40);
+
+  try{
+    const res=await fetch('/build-pdf',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({pages})
+    });
+    if(!res.ok){const e=await res.json();throw new Error(e.error||'PDF error');}
+    pdfBlob=await res.blob();
+    showProg(true,'PDF ready!',100);
+    setTimeout(()=>showProg(false,'',0),700);
+    buildThumbs();
+    goStep(3);
+  }catch(e){
+    showMsg('msg2','PDF error: '+e.message,'err');
+    showProg(false,'',0);
+  }
+  btn.disabled=false;
+}
+
+function showProg(on,lbl,pct){
+  document.getElementById('prog').classList.toggle('show',on);
+  document.getElementById('progLbl').textContent=lbl;
+  document.getElementById('progFill').style.width=pct+'%';
+}
+
+// ══════════════════════════════════════════════════════════════
+// STEP 3 — THUMBS + DOWNLOAD
+// ══════════════════════════════════════════════════════════════
+function buildThumbs(){
+  const g=document.getElementById('thumbGrid');
+  g.innerHTML='';
+  PROPS.filter(p=>finalImgs[p.id]).forEach(p=>{
+    const d=document.createElement('div');
+    d.className='thumb';
+    d.innerHTML=`<img src="data:image/png;base64,${finalImgs[p.id]}" alt="${p.label}"/>
+      <div class="thumb-lbl">${p.label}</div>`;
+    g.appendChild(d);
+  });
+}
+
+function downloadPDF(){
+  if(!pdfBlob)return;
+  const url=URL.createObjectURL(pdfBlob);
+  const a=document.createElement('a');
+  a.href=url; a.download='streetview_properties.pdf'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+function startOver(){
+  propData={}; finalImgs={}; pdfBlob=null;
+  buildPinTable();
+  goStep(1);
+}
+
+// ══════════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════════
+function goStep(n){
+  [1,2,3].forEach(i=>{
+    document.getElementById(`v${i}`).classList.toggle('active',i===n);
+    const si=document.getElementById(`si${i}`);
+    si.classList.remove('active','done');
+    if(i===n) si.classList.add('active');
+    else if(i<n) si.classList.add('done');
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════════════════════
+function showMsg(id,msg,type){
+  const el=document.getElementById(id);
+  el.textContent=msg;
+  el.className='msg'+(type?' '+type:'')+(msg?' show':'');
+}
+
+function blobToB64(blob){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=e=>res(e.target.result);
+    r.onerror=rej;
+    r.readAsDataURL(blob);
+  });
+}
+
+// Support paste event anywhere on page while modal is open
+document.addEventListener('paste',e=>{
+  if(!document.getElementById('overlay').classList.contains('open')) return;
+  if(cropMode!=='crop') return;
+  const items=[...e.clipboardData.items];
+  const img=items.find(i=>i.type.startsWith('image/'));
+  if(img){
+    const blob=img.getAsFile();
+    blobToB64(blob).then(b64=>showCropImage(b64.split(',')[1]));
+  }
+});
+</script>
+</body>
+</html>
